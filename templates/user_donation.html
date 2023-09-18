@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% block content %}
+<body>
+    <h2>Moje dary:</h2>
+            {% for donation in user_donation_f %}
+                <ul>
+                <li>Ilość worków: {{ donation.quantity }}</li>
+                <li>Dla organizacji: {{ donation.institution }}</li>
+                <li>Z Kategorii:
+                    <ul>
+                        {% for category in donation.categories.all %}
+                            <li>{{ category.name }}</li>
+                        {% endfor %}
+                    </ul>
+                <li>
+                {% if donation.pick_up_date > date_now %}
+                    Dary będą zabrane
+                {% else %}
+                    Dary zostały zabrane.
+                {% endif %}
+                </li>
+                  Data: {{ donation.pick_up_date }}, <br>o godżinie: {{ donation.pick_up_time }}</li>
+                </ul>
+
+            {% endfor %}
+           {% for donation in user_donation_t %}
+                  <ul>
+                       <li><s>Dar od: {{ donation.user }}</s></li>
+                       <li><s>Ilość worków: {{ donation.quantity }}</s></li>
+                       <li><s>Dla organizacji: {{ donation.institution }}</s></li>
+                       <li><s>Z Kategorii:</s>
+                    <ul>
+                        {% for category in donation.categories.all %}
+                            <li>{{ category.name }}</li>
+                        {% endfor %}
+                    </ul>
+                <li><s>
+                {% if donation.pick_up_date > date_now %}
+                    Dary będą zabrane
+                {% else %}
+                    Dary zostały zabrane.
+                {% endif %}</s>
+                </li>
+                  Data: {{ donation.pick_up_date }}, <br>o godżinie: {{ donation.pick_up_time }}</li>
+                  <li> Dary zostały odebrane: {{ donation.taken_timestamp }}</li>
+                </ul>
+
+            {% endfor %}
+
+</body>
+{% endblock %}

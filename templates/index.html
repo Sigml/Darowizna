@@ -1,0 +1,167 @@
+{% extends 'base.html' %}
+{% block content %}
+<body xmlns="http://www.w3.org/1999/html">
+    <header class="header--main-page-photo">>
+      <div class="slogan container container--90">
+        <div class="slogan--item">
+          <h1>
+            Zacznij pomagać!<br />
+            Oddaj niechciane rzeczy w zaufane ręce
+          </h1>
+        </div>
+      </div>
+    </header>
+
+    <section id="stats" class="stats">
+      <div class="container container--85">
+        <div class="stats--item">
+                <em>{{ total_quantity }}</em>
+          <h3>Oddanych worków</h3>
+          <p>Lorem ipsum dolor sit amet consectetur adipisicing elit. Eius est beatae, quod accusamus illum tempora!</p>
+        </div>
+
+        <div class="stats--item">
+                <em>{{ all_institution}}</em>
+          <h3>Wspartych organizacji</h3>
+          <p>Lorem ipsum dolor sit amet consectetur, adipisicing elit. Laboriosam magnam, sint nihil cupiditate quas quam.</p>
+        </div>
+
+      </div>
+    </section>
+
+    <section id="steps" class="steps">
+      <h2>Wystarczą 4 proste kroki</h2>
+
+      <div class="steps--container">
+        <div class="steps--item">
+          <span class="icon icon--hands"></span>
+          <h3>Wybierz rzeczy</h3>
+          <p>ubrania, zabawki, sprzęt i inne</p>
+        </div>
+        <div class="steps--item">
+          <span class="icon icon--arrow"></span>
+          <h3>Spakuj je</h3>
+          <p>skorzystaj z worków na śmieci</p>
+        </div>
+        <div class="steps--item">
+          <span class="icon icon--glasses"></span>
+          <h3>Zdecyduj komu chcesz pomóc</h3>
+          <p>wybierz zaufane miejsce</p>
+        </div>
+        <div class="steps--item">
+          <span class="icon icon--courier"></span>
+          <h3>Zamów kuriera</h3>
+          <p>kurier przyjedzie w dogodnym terminie</p>
+        </div>
+      </div>
+
+      <a href="{% url 'registration' %}" class="btn btn--large">Załóż konto</a>
+    </section>
+
+    <section id="about-us" class="about-us">
+      <div class="about-us--text">
+        <h2>O nas</h2>
+        <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Voluptas vitae animi rem pariatur incidunt libero optio esse quisquam illo omnis.</p>
+        <img src="../static/images/signature.svg" class="about-us--text-signature" alt="Signature" />
+      </div>
+      <div class="about-us--image"><img src="../static/images/about-us.jpg" alt="People in circle" /></div>
+    </section>
+
+     <section id="help" class="help">
+      <h2>Komu pomagamy?</h2>
+
+      <ul class="help--buttons">
+        <li data-id="1"><a href="#" class="btn btn--without-border active">Fundacjom</a></li>
+        <li data-id="2"><a href="#" class="btn btn--without-border">Organizacjom pozarządowym</a></li>
+        <li data-id="3"><a href="#" class="btn btn--without-border" >Lokalnym zbiórkom</a></li>
+      </ul>
+
+      <!-- SLIDE 1 -->
+      <div class="help--slides active" data-id="1">
+        <p>W naszej bazie znajdziesz listę zweryfikowanych Fundacji, z którymi współpracujemy. Możesz sprawdzić czym się zajmują, komu pomagają i czego potrzebują.</p>
+        {% for fundacja in help_institution_fundacja %}
+        <ul class="help--slides-items">
+          <li>
+            <div class="col">
+
+              <div class="title">Fundacja: {{ fundacja.name }}</div>
+              <div class="subtitle">Cel i misja: {{ fundacja.description }}.</div>
+
+            </div>
+                {% for category in fundacja.category.all %}
+            <div class="col"><div class="text">{{ category.name }}</div></div>
+               {% endfor %}
+
+          </li>
+
+         </ul>
+      {% endfor %}
+              <!-- Pagination        -->
+    <div class="help--slides-pagination">
+        {% for page in help_institution_fundacja.paginator.page_range %}
+            <a href="?page={{ page }}" class="btn btn--small btn--without-border
+            {% if page == help_institution_fundacja.number %} active{% endif %}"> {{ page }}</a>
+        {% endfor %}
+    </div>
+    </div>
+
+
+
+      <!-- SLIDE 2 -->
+      <div class="help--slides" data-id="2">
+        <p>
+          Lorem ipsum dolor, sit amet consectetur adipisicing elit. Hic officiis mollitia dolor, neque aspernatur accusamus debitis. Ducimus, officia. Quia, sunt illum! Non iste placeat ab ipsum alias
+          quos suscipit corporis!
+        </p>
+        <ul class="help--slides-items">
+          <li>
+            <div class="col">
+                {% for organizacja in help_institution_organizacja %}
+              <div class="title">{{ organizacja.name }}</div>
+              <div class="subtitle">{{ organizacja.description }}.</div>
+            </div>
+                {% for category in organizacja.category.all %}
+            <div class="col"><div class="text">{{ category.name }}</div></div>
+              {% endfor %}
+          </li>
+        {% endfor %}
+        </ul>
+
+        <div class="help--slides-pagination">
+        {% for page in help_institution_organizacja.paginator.page_range %}
+            <a href="?page={{ page }}" class="btn btn--small btn--without-border
+            {% if page == help_institution_organizacja.number %} active{% endif %}"> {{ page }}</a>
+        {% endfor %}
+        </div>
+
+      </div>
+
+      <!-- SLIDE 3 -->
+      <div class="help--slides" data-id="3">
+        <p>Lorem ipsum dolor sit amet, his ocurreret persequeris ea, ad utinam laudem duo. Verterem adipisci partiendo eos ne, ea his reque quaeque recteque, ne quo lobortis intellegam.</p>
+        <ul class="help--slides-items">
+          <li>
+            <div class="col">
+                {% for zbiorka in help_institution_zbiorka %}
+              <div class="title">{{ zbiorka.name }} 1</div>
+              <div class="subtitle">{{ zbiorka.description }}.</div>
+            </div>
+                {% for category in zbiorka.category.all %}
+                    <div class="col"><div class="text">{{ category.name }}</div></div>
+                {% endfor %}
+          </li>
+            {% endfor %}
+
+        </ul>
+
+        <!-- Pagination         -->
+       <div class="help--slides-pagination">
+        {% for page in help_institution_zbiorka.paginator.page_range %}
+            <a href="?page={{ page }}" class="btn btn--small btn--without-border
+            {% if page == help_institution_zbiorka.number %} active{% endif %}"> {{ page }}</a>
+        {% endfor %}
+        </div>
+
+      </div>
+    </section>
+{% endblock %}

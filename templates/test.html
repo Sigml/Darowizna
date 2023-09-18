@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% block content %}
+<body>
+{#<form method="post">{% csrf_token %}#}
+{#    {{ form.as_p }}#}
+{#    <input type="submit" value="Save">#}
+<ul>
+    {% for el in donation %}
+                <li>{{el.id}}</li>
+        <li>{{el.quantity}}</li>
+        <li>{{el.user}}</li>
+        <li>{{el.phone_number}}</li>
+        <li>{{el.pick_up_time}}</li>
+        <li>{{el.pick_up_comment}}</li>
+        <li>{{ el.address }}</li>
+-------
+    {% endfor %}
+</ul>
+{#</form>#}
+</body>
+{% endblock %}

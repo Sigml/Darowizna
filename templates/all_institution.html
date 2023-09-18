@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% block content %}
+<body>
+    <a href="{% url 'add_institution' %}" class="btn btn--without-border">Dodać nową instytucję</a>
+    {% for institution in all_institution %}
+        <ul>
+        <li>Nazwa: {{ institution.name }}</li>
+        <li>Opis: {{ institution.description }}</li>
+        <li>Typ: {{ institution.get_type_display }}</li>
+        <li>Kategoria:
+            {% for category in institution.category.all %}
+                {{ category.name }}
+            {% endfor %}
+        </li>
+        </ul>
+            <a href="{% url 'delete_institution' pk=institution.id  %}" class=" btn  btn--without-border" >Usuń instytucję</a>
+            <a href="{% url 'update_institution' pk=institution.id  %}" class=" btn  btn--without-border" >Zmień instytucję</a>
+    {% endfor %}
+</body>
+{% endblock %}
