@@ -1,8 +1,7 @@
-from django.contrib.auth.models import User
+from django.contrib.auth.models import AbstractUser, Group, Permission
 from django.db import models
 from django.contrib.auth.models import User
 
-# Create your models here.
 
 
 TYPE = (
@@ -45,5 +44,6 @@ class Donation(models.Model):
     user = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL)
     is_taken = models.BooleanField(default=False)
     taken_timestamp = models.DateTimeField(auto_now=True)
+
 
 

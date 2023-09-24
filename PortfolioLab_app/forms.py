@@ -1,8 +1,10 @@
 from django import forms
 from django.core.exceptions import ValidationError
 from django.forms import TextInput, Select, SelectMultiple
+import re
+from django.contrib.auth.models import User
 
-from .models import Donation, Institution, Category, User
+from .models import Donation, Institution, Category
 
 
 class DonationForm(forms.ModelForm):
@@ -70,18 +72,25 @@ class RegistrationForm(forms.ModelForm):
 
         }
 
-    def clean_email(self):
-        email = self.cleaned_data.get('email')
-        if User.objects.filter(email=email).exists():
-            raise ValidationError('Ten email jest już używany.')
-        return email
-
     def clean(self):
         cleaned_data = super().clean()
-        password1 = cleaned_data.get('password1')
-        password2 = cleaned_data.get('password2')
+        password = cleaned_data.get('password')
+        password_confirmation = cleaned_data.get('password_confirmation')
 
-        if password1 and password2 and password1 != password2:
+        email = self.cleaned_data.get('username')
+        if User.objects.filter(username=email).exists():
+            raise ValidationError('Ten email jest już używany.')
+
+        if len(password) < 8:
+            raise ValidationError ("Hasło musi zawierać co najmniej 8 znaków")
+
+        if (not re.search(r'[a-z]', password) or
+                not re.search(r'[A-Z]', password) or
+                not re.search(r'\d', password) or
+                not re.search(r'[!@#$%^&*()\-_=+[\]{};:\'",<.>/?\\|]', password)):
+            raise ValidationError( "Hasło musi zawierać co najmniej jedną wielką literę, jedną małą literę, cyfrę i znak specjalny")
+
+        if password and password_confirmation and password != password_confirmation:
             raise ValidationError('Hasła muszą buć takie same.')
 
         return cleaned_data
@@ -97,15 +106,6 @@ class LoginForm(forms.Form):
         "placeholder": "Hasło"}))
 
 
-class UserForm(forms.ModelForm):
-    class Meta:
-        model = User
-        fields = ['username', 'first_name', 'last_name']
-        labels = {
-            'username': 'Email',
-            'first_name': 'Imię',
-            'last_name': 'Nazwiśko'
-        }
 
 class DonationUpdateForm(forms.ModelForm):
     class Meta:
@@ -130,3 +130,32 @@ class UserUpdateForm(forms.ModelForm):
             'last_name': 'Nazwiśko',
         }
 
+
+class SearchUserForm(forms.Form):
+    username = forms.CharField()
+
+class ResetPasswordForm(forms.Form):
+    password = forms.CharField(label="Password", widget=forms.PasswordInput())
+    password_confirmation = forms.CharField(label="Password confirmation", widget=forms.PasswordInput())
+
+    def clean(self):
+        cleaned_data = super().clean()
+        password = cleaned_data.get('password')
+        password_confirmation = cleaned_data.get('password_confirmation')
+
+        if password != password_confirmation:
+            raise forms.ValidationError('Podane hasła różnią się')
+
+        if len(password) < 8:
+            raise ValidationError("Hasło musi zawierać co najmniej 8 znaków")
+
+        if (not re.search(r'[a-z]', password) or
+                not re.search(r'[A-Z]', password) or
+                not re.search(r'\d', password) or
+                not re.search(r'[!@#$%^&*()\-_=+[\]{};:\'",<.>/?\\|]', password)):
+            raise ValidationError( "Hasło musi zawierać co najmniej jedną wielką literę, jedną małą literę, cyfrę i znak specjalny")
+
+        if password and password_confirmation and password != password_confirmation:
+            raise ValidationError('Hasła muszą buć takie same.')
+
+        return cleaned_data

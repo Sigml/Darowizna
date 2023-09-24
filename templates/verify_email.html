@@ -1,0 +1,6 @@
+{% autoescape off %}
+    Dzień dobry {{ user.first_name}},
+    Potwierdź rejestrację:
+    http://{{ domain }}{% url 'verify_email' uidb64=uid token=token %}
+
+{% endautoescape %}

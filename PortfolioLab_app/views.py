@@ -1,20 +1,25 @@
 from datetime import datetime
-
-
-from django.contrib.auth import authenticate, login, logout
+from django.db import IntegrityError
+from django.contrib.auth import authenticate, login, logout, update_session_auth_hash, get_user_model
+from django.contrib.auth.backends import UserModel
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
+from django.utils.encoding import force_str
 from django.db.models import Max
 from django.http import HttpResponseServerError
 from django.shortcuts import render, redirect
 from django.urls import reverse_lazy
+from django.utils.http import urlsafe_base64_decode
 from django.views import View
+from django.contrib.auth.tokens import default_token_generator as token_generator, default_token_generator
 
 from .models import Category, Donation, Institution
-from django.views.generic import CreateView, FormView, DeleteView, UpdateView
+from django.views.generic import CreateView, DeleteView, UpdateView
 from .forms import InstitutionForm, RegistrationForm, LoginForm, CategoryForm, DonationUpdateForm, \
-    UserUpdateForm
+    UserUpdateForm, ResetPasswordForm, SearchUserForm
+from .utils import send_email_verify, send_email_reset_password
 
 
 # Create your views here.
@@ -71,16 +76,55 @@ class LoginView(View):
                 return redirect('registration')
 
 
-class RegistrationView(FormView):
-    form_class = RegistrationForm
-    template_name = "register.html"
-    success_url = '/login/'
+class RegistrationView(View):
+    def get(self, request):
+        form = RegistrationForm
+        return render(request, 'register.html', {'form': form})
 
-    def form_valid(self, form):
-        data = form.cleaned_data
-        data.pop('password_confirmation')
-        User.objects.create_user(**data)
-        return super().form_valid(form)
+    def post(self, request):
+        try:
+            form = RegistrationForm(request.POST)
+            if form.is_valid():
+                data = form.cleaned_data
+                password = data.pop('password_confirmation')
+
+                user = User.objects.create_user(**data)
+                user.set_password(password)
+                send_email_verify(request, user)
+                user.save()
+                return redirect('confirm_email')
+            return render(request, 'register.html', {'form': form})
+        except IntegrityError:
+            return HttpResponseServerError('Użytkownik już istnieje')
+        except Exception as e:
+            message = "Coś poszło nie tak, spróbój pozniej"
+            return render(request, 'register.html', {'message': message})
+
+
+class EmailVerifyView(View):
+    def get(self, request, uidb64, token):
+        user = self.get_user(uidb64)
+
+        if user is not None and token_generator.check_token(user, token):
+            user.email_veryfy = True
+            login(request, user)
+            return redirect('main')
+        return redirect('invalid_verify')
+
+    @staticmethod
+    def get_user(uidb64):
+        try:
+            uid = urlsafe_base64_decode(uidb64).decode()
+            user = UserModel._default_manager.get(pk=uid)
+        except (
+                TypeError,
+                ValueError,
+                OverflowError,
+                UserModel.DoesNotExist,
+                ValidationError,
+        ):
+            user = None
+        return user
 
 
 class UserUpdateView(LoginRequiredMixin, UpdateView):
@@ -113,13 +157,14 @@ class UserUpdateView(LoginRequiredMixin, UpdateView):
 
         return super().form_valid(form)
 
+
 def logout_view(request):
     logout(request)
     return redirect('/')
 
 
 class UserInfoView(LoginRequiredMixin, View):
-    def get(self,request,user_id):
+    def get(self, request, user_id):
         users = User.objects.filter(id=user_id)
         context = {
             'users': users
@@ -127,13 +172,77 @@ class UserInfoView(LoginRequiredMixin, View):
         return render(request, 'UserInfo.html', context)
 
 
+class ResetPasswordSearchUserView(View):
+    def get(self, request):
+        form = SearchUserForm()
+        context = {
+            'form': form
+        }
+        return render(request, 'reset_password.html', context)
+
+    def post(self, request):
+        form = SearchUserForm(request.POST)
+        if form.is_valid():
+            username = form.cleaned_data['username']
+            try:
+                user = User.objects.get(username=username)
+                send_email_reset_password(request, user)
+                return redirect('confirm_email')
+            except User.DoesNotExist:
+                return HttpResponseServerError('Nie znaleziono użytkownika')
+        else:
+            return render(request, 'reset_password.html', {'form': form})
+
+
+class ResetPasswordView(View):
+    def get(self, request, uidb64, token):
+        user = self.get_user(uidb64)
+        if user is not None and default_token_generator.check_token(user, token):
+            form = ResetPasswordForm()
+            context = {
+                'form': form,
+                'uidb64': uidb64,
+                'token': token
+            }
+            return render(request, 'reset_password.html', context)
+        else:
+            return HttpResponseServerError('Nieprawidłowy link do resetowania hasła.')
+
+    def post(self, request, uidb64, token):
+        user = self.get_user(uidb64)
+        if user is not None and default_token_generator.check_token(user, token):
+            form = ResetPasswordForm(request.POST)
+            if form.is_valid():
+                password = form.cleaned_data['password']
+                password_confirmation = form.cleaned_data['password_confirmation']
+
+                if password == password_confirmation:
+                    user.set_password(password)
+                    user.save()
+                    update_session_auth_hash(request, user)
+                    return redirect('login')
+            else:
+                return render(request, 'reset_password.html', {'form': form})
+        else:
+            return HttpResponseServerError('Nieprawidłowy link do resetowania hasła.')
+
+    @staticmethod
+    def get_user(uidb64):
+        try:
+            uid = force_str(urlsafe_base64_decode(uidb64))
+            user = get_user_model().objects.get(pk=uid)
+        except (TypeError, ValueError, OverflowError, get_user_model().DoesNotExist, ValidationError):
+            user = None
+        return user
+
+
 class DonationView(LoginRequiredMixin, View):
     def get(self, request):
         all_category = Category.objects.all()
         all_institution = Institution.objects.all()
         context = {
-            'all_category':all_category,
-            'all_institution':all_institution,
+            'all_category': all_category,
+            'all_institution': all_institution,
         }
         return render(request, 'form.html', context)
 
@@ -144,9 +253,8 @@ class DonationView(LoginRequiredMixin, View):
             categories_names = request.POST.getlist('categories')
             categories_ids = []
             for category_name in categories_names:
-                    category = Category.objects.get(name=category_name)
-                    categories_ids.append(category.id)
-            user = request.user
+                category = Category.objects.get(name=category_name)
+                categories_ids.append(category.id)
             quantity = request.POST.get('bags')
             address = request.POST.get('address')
             phone_number = request.POST.get('phone')
@@ -156,21 +264,24 @@ class DonationView(LoginRequiredMixin, View):
             pick_up_date = datetime.strptime(pick_up_date_str, '%Y-%m-%d').date()
             pick_up_time = request.POST.get('time')
             pick_up_comment = request.POST.get('more_info')
-            new_donation= Donation.objects.create(quantity=quantity, institution=institution,
-                                                  address=address, phone_number=phone_number, city=city,
-                                                  zip_code=zip_code, pick_up_date=pick_up_date, pick_up_time=pick_up_time,
-                                                  pick_up_comment=pick_up_comment, user=user)
-            new_donation.categories.set(categories_ids)
+            new_donation = Donation.objects.create(quantity=quantity, institution=institution,
+                                                   address=address, phone_number=phone_number, city=city,
+                                                   zip_code=zip_code, pick_up_date=pick_up_date,
+                                                   pick_up_time=pick_up_time,
+                                                   pick_up_comment=pick_up_comment, user=request.user)
+
+            new_donation.save()
             return render(request, 'form-confirmation.html')
         except Exception:
             return HttpResponseServerError('Coś poszło nie tak, sprobój pózniej')
 
 
 class AllDonationView(StaffRequiredMixin, View):
-    def get(self,request):
+    def get(self, request):
         donations_f = Donation.objects.filter(is_taken=False)
         donations_t = Donation.objects.filter(is_taken=True)
-        return render(request, 'all_donations.html', {'donations_f':donations_f, 'donations_t':donations_t})
+        return render(request, 'all_donations.html', {'donations_f': donations_f, 'donations_t': donations_t})
+
 
 class DonationUpdateView(UpdateView):
     model = Donation
@@ -178,8 +289,9 @@ class DonationUpdateView(UpdateView):
     template_name = 'forms.html'
     success_url = reverse_lazy('all_donation')
 
+
 class SuccessView(View):
-    def get(self,request):
+    def get(self, request):
         return render(request, 'form-confirmation.html')
 
 
@@ -225,9 +337,8 @@ class UserDonation(LoginRequiredMixin, View):
 
         context = {
             'user_donation_f': user_donation_f,
-            'user_donation_t':user_donation_t,
+            'user_donation_t': user_donation_t,
             'date_now': date_now,
         }
 
         return render(request, 'user_donation.html', context)
-

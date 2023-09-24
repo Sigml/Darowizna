@@ -16,15 +16,23 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
+from django.views.generic import TemplateView
+
 from PortfolioLab_app.views import (MainView, DonationView, LoginView, RegistrationView, logout_view,
                                     InstitutionCreateView, UserInfoView, CategoryCreateView, UserDonation, SuccessView,
                                     AllInstitutionView, InstitutionDeleteView, InstitutionUpdateView, UserUpdateView,
-                                    DonationUpdateView, AllDonationView,)
+                                    DonationUpdateView, AllDonationView, EmailVerifyView, ResetPasswordSearchUserView,
+                                    ResetPasswordView)
 
 urlpatterns = [
     path('admin/', admin.site.urls  ),
     path('', MainView.as_view(), name='main'),
     path('registration/', RegistrationView.as_view(), name='registration'),
+    path('confirm_email/', TemplateView.as_view(template_name='confirm_email.html'), name='confirm_email'),
+    path('verify_email/<uidb64>/<token>/',EmailVerifyView.as_view(), name='verify_email'),
+    path('invalid_verify/', TemplateView.as_view(template_name='invalid_verify.html'), name='invalid_verify'),
+    path('reset_password/', ResetPasswordSearchUserView.as_view(), name='search_user'),
+    path('reset_password/<uidb64>/<token>/', ResetPasswordView.as_view(), name='reset_password'),
     path('login/', LoginView.as_view(), name='login'),
     path('logout/', logout_view, name='logout'),
     path('userinfo/<int:user_id>/', UserInfoView.as_view(), name='profil'),
@@ -39,6 +47,7 @@ urlpatterns = [
     path('update_institution/<int:pk>/', InstitutionUpdateView.as_view(), name='update_institution'),
     path('add_category/', CategoryCreateView.as_view()),
     path('success/', SuccessView.as_view(), name='success'),
+
 
 
 
